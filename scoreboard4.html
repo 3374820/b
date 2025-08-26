@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>최적화된 점수판 (타이머 숫자 확대)</title>
+    <style>
+        /* 기본 스타일은 이전과 동일하게 유지합니다. */
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            color: #333;
+            font-size: 1rem;
+        }
+
+        .scoreboard-container {
+            width: 90%;
+            max-width: 1200px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            text-align: center;
+        }
+
+        /* 타이머 스타일 */
+        .timer-section {
+            margin-bottom: 30px;
+        }
+
+        .timer-display-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .timer-display {
+            font-size: 15em;
+            font-weight: bold;
+            color: #4CAF50;
+            line-height: 1;
+        }
+        
+        .timer-toggle-btn {
+            font-size: 1.5em;
+            padding: 8px 16px;
+            margin: 0 8px;
+            border: none;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 50%;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            line-height: 1;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .timer-toggle-btn:hover {
+            background-color: #45a049;
+        }
+
+        .timer-controls button, #time-select {
+            padding: 10px 20px;
+            font-size: 1em;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #5cb85c;
+            color: white;
+            transition: background-color 0.2s;
+        }
+
+        .timer-controls button:hover, #time-select:hover {
+            background-color: #4cae4c;
+        }
+
+        /* 점수판 스타일 */
+        .score-section {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+
+        .team-score {
+            flex: 1;
+            padding: 20px;
+            background-color: #e9ecef;
+            border-radius: 8px;
+            margin: 0 10px;
+        }
+
+        .team-name {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .score-display {
+            font-size: 5em;
+            font-weight: bold;
+            color: #2196F3;
+            margin-bottom: 15px;
+        }
+
+        .score-controls .score-btn {
+            padding: 10px 30px;
+            font-size: 1.5em;
+            margin: 0 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            transition: background-color 0.2s;
+        }
+
+        .score-controls .score-btn:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="scoreboard-container">
+        <div class="timer-section">
+            <div class="timer-display-container">
+                <button class="timer-toggle-btn" onclick="adjustTime('minutes', 1)">+</button>
+                <button class="timer-toggle-btn" onclick="adjustTime('minutes', -1)">-</button>
+                <div id="timer" class="timer-display">05:00</div>
+                <button class="timer-toggle-btn" onclick="adjustTime('seconds', 1)">+</button>
+                <button class="timer-toggle-btn" onclick="adjustTime('seconds', -1)">-</button>
+            </div>
+            <div class="timer-controls">
+                <button id="start-btn">시작</button>
+                <button id="pause-btn">일시정지</button>
+                <button id="reset-btn">초기화</button>
+                <select id="time-select">
+                    <option value="1">1분</option>
+                    <option value="2">2분</option>
+                    <option value="3">3분</option>
+                    <option value="5">5분</option>
+                    <option value="10">10분</option>
+                    <option value="15">15분</option>
+                    <option value="20">20분</option>
+                    <option value="25">25분</option>
+                    <option value="30">30분</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="score-section">
+            <div class="team-score">
+                <div class="team-name">팀 A</div>
+                <div class="score-display" id="score-a">0</div>
+                <div class="score-controls">
+                    <button class="score-btn" onclick="updateScore('a', 1)">+</button>
+                    <button class="score-btn" onclick="updateScore('a', -1)">-</button>
+                </div>
+            </div>
+            <div class="team-score">
+                <div class="team-name">팀 B</div>
+                <div class="score-display" id="score-b">0</div>
+                <div class="score-controls">
+                    <button class="score-btn" onclick="updateScore('b', 1)">+</button>
+                    <button class="score-btn" onclick="updateScore('b', -1)">-</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        let timer;
+        let isPaused = true;
+        let timeLeft = 300; // 기본 5분 (300초)
+
+        const timerDisplay = document.getElementById('timer');
+        const startBtn = document.getElementById('start-btn');
+        const pauseBtn = document.getElementById('pause-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const timeSelect = document.getElementById('time-select');
+
+        function displayTimer() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function startTimer() {
+            if (isPaused && timeLeft > 0) {
+                isPaused = false;
+                timer = setInterval(() => {
+                    if (timeLeft <= 0) {
+                        clearInterval(timer);
+                        isPaused = true;
+                        timerDisplay.style.color = 'red';
+                        setTimeout(() => timerDisplay.style.color = '#4CAF50', 500);
+                        return;
+                    }
+                    timeLeft--;
+                    displayTimer();
+                }, 1000);
+            }
+        }
+
+        function pauseTimer() {
+            if (!isPaused) {
+                clearInterval(timer);
+                isPaused = true;
+            }
+        }
+
+        function resetTimer() {
+            clearInterval(timer);
+            isPaused = true;
+            const newTime = parseInt(timeSelect.value) * 60;
+            timeLeft = newTime;
+            displayTimer();
+            timerDisplay.style.color = '#4CAF50';
+        }
+
+        function adjustTime(unit, value) {
+            if (!isPaused) return;
+
+            if (unit === 'minutes') {
+                timeLeft += value * 60;
+            } else if (unit === 'seconds') {
+                timeLeft += value;
+            }
+
+            if (timeLeft < 0) {
+                timeLeft = 0;
+            }
+            displayTimer();
+        }
+
+        function updateScore(team, value) {
+            const scoreElement = document.getElementById(`score-${team}`);
+            let currentScore = parseInt(scoreElement.textContent);
+            let newScore = currentScore + value;
+            
+            if (newScore < 0) {
+                newScore = 0;
+            }
+            scoreElement.textContent = newScore;
+        }
+
+        startBtn.addEventListener('click', startTimer);
+        pauseBtn.addEventListener('click', pauseTimer);
+        resetBtn.addEventListener('click', resetTimer);
+        timeSelect.addEventListener('change', resetTimer);
+
+        resetTimer();
+    </script>
+</body>
+</html>
